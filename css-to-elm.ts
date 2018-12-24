@@ -68,8 +68,13 @@ fs.readFile(cssFilePath, (err, css) => {
     postcss([])
         .process(css, { syntax: scss })
         .then((result: any) => {
+            // Write out an import statement for the top
+            console.log('import Css exposing (..)\n\n')
+
             for (let node of result.root.nodes) {
                 const elmNodes = convertNode(node)
+
+                // Write out each node as Elm
                 elmNodes.map(elmNode => console.log(elmNodeToString(elmNode)))
             }
         })
