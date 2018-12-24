@@ -1,4 +1,5 @@
 import postcss from 'postcss'
+import * as _ from 'lodash'
 
 export interface ElmDecl {
     name: string
@@ -17,25 +18,31 @@ function translateValue(value: string) {
         return `(px ${value.replace('px', '')})`
     } else if (/.*em/.test(value)) {
         return `(em ${value.replace('em', '')})`
+    } else if (/.*%/.test(value)) {
+        return `(pct ${value.replace('%', '')})`
+    } else if (/#.*/.test(value)) {
+        return `(hex "${value.replace('#', '')}")`
+    } else if (/\$.*/.test(value)) {
+        return _.camelCase(value.replace('$', ''))
     }
     return value
 }
 
-export function border(node: postcss.Declaration): ElmDecl {
-    const args = node.value.split(' ')
-    const values = args.map(translateValue)
-    return { name: suffix('border', values.length), values }
+function display(node: postcss.Declaration): ElmDecl {
+    if (node.value === 'flex') {
+        return { name: 'displayFlex', values: [] }
+    }
+    return { name: 'display', values: [node.value] }
 }
 
-export function margin(node: postcss.Declaration): ElmDecl {
+export function standard(node: postcss.Declaration) {
     const args = node.value.split(' ')
     const values = args.map(translateValue)
-    return { name: suffix('margin', values.length), values }
+    return { name: suffix(_.camelCase(node.prop), values.length), values }
 }
 
 type Lookup = { [key: string]: (node: postcss.Declaration) => ElmDecl }
 
 export const lookup: Lookup = {
-    border,
-    margin,
+    display,
 }

@@ -11,11 +11,8 @@ interface ElmNode {
 
 function convertDecl(node: postcss.Declaration): Rules.ElmDecl {
     if (node.type === 'decl') {
-        const handler = Rules.lookup[node.prop]
-        if (handler) {
-            return handler(node)
-        }
-        return { name: `unknown rule: ${node.prop}`, values: [] }
+        const handler = Rules.lookup[node.prop] || Rules.standard
+        return handler(node)
     }
     return { name: '', values: [] }
 }
@@ -53,7 +50,9 @@ ${node.name} =
     return text
 }
 
-fs.readFile('./View.cssm.scss', (err, css) => {
+const cssFilePath = process.argv[2]
+
+fs.readFile(cssFilePath, (err, css) => {
     postcss([])
         .process(css, { syntax: scss })
         .then((result: any) => {

@@ -1,6 +1,8 @@
 {
   "dependencies": {
+    "@types/lodash": "4.14.119",
     "@types/node": "10.12.18",
+    "lodash": "4.17.11",
     "postcss": "7.0.6",
     "postcss-scss": "2.0.0",
     "prettier": "1.15.3",
