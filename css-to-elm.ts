@@ -38,14 +38,14 @@ function elmNodeToString(node: ElmNode): string {
         .map((decl: Rules.ElmDecl) => {
             return `${decl.name} ${decl.values.join(' ')}`
         })
-        .join('\n    , ')
+        .join('\n        , ')
 
     const text = `
 ${node.name} : Style
 ${node.name} =
     Css.batch
-    [ ${rules}
-    ]
+        [ ${rules}
+        ]
 `
     return text
 }
