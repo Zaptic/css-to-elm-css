@@ -36,11 +36,11 @@ Input SCSS:
 }
 ```
 
-Output Elm (ish):
+Output Elm:
 
 ```
-.trainingWorkflows : Style
-.trainingWorkflows =
+trainingWorkflows : Style
+trainingWorkflows =
     Css.batch
         [ padding2 (px 30) (px 20)
         , textAlign center
@@ -50,8 +50,8 @@ Output Elm (ish):
         ]
 
 
-h2 : Style
-h2 =
+trainingWorkflowsH2 : Style
+trainingWorkflowsH2 =
     Css.batch
         [ fontSize (px 16)
         , padding4 (px 25) (px 20) (px 20) (px 20)
@@ -60,13 +60,11 @@ h2 =
         ]
 
 
-> ul : Style
-> ul =
+trainingWorkflowsUl : Style
+trainingWorkflowsUl =
     Css.batch
         [ padding 0
         , margin 0
         , width (pct 100)
         ]
 ```
-
-

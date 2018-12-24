@@ -1,6 +1,8 @@
 import postcss from 'postcss'
 import scss from 'postcss-scss'
 import * as fs from 'fs'
+import slug from 'slug'
+import * as _ from 'lodash'
 
 import * as Rules from './rules'
 
@@ -23,7 +25,11 @@ function convertNode(node: postcss.Node): ElmNode[] {
         const decls = []
         for (let child of node.nodes || []) {
             if (child.type === 'rule') {
-                children.push(...convertNode(child))
+                const childNodes = convertNode(child).map(childElmNode => ({
+                    ...childElmNode,
+                    name: `${node.selector}-${childElmNode.name}`,
+                }))
+                children.push(...childNodes)
             } else if (child.type === 'decl') {
                 decls.push(convertDecl(child))
             }
@@ -40,9 +46,15 @@ function elmNodeToString(node: ElmNode): string {
         })
         .join('\n        , ')
 
+    // Remove greater-than & ampersand syntax from the concatenated name
+    const simplified = node.name.replace(/(&|>)/g, '')
+
+    // Slugify to remove anything else & then camelCase for Elm
+    const name = _.camelCase(slug(simplified))
+
     const text = `
-${node.name} : Style
-${node.name} =
+${name} : Style
+${name} =
     Css.batch
         [ ${rules}
         ]
