@@ -82,6 +82,15 @@ const defaultConfig = {
 
     */
     replacements: {},
+
+    /* Imports allow you to specify addition imports that you'd like included in the output. These might be used to
+       expose standard colors that you have defined in your SCSS:
+
+           imports: [
+               'import Zap.Style.Color as Color'
+           ],
+    */
+    imports: [],
 }
 
 let config = defaultConfig
@@ -95,7 +104,11 @@ fs.readFile(cssFilePath, (err, css) => {
         .process(css, { syntax: scss })
         .then((result: any) => {
             // Write out an import statement for the top
-            console.log('import Css exposing (..)\n\n')
+            console.log('import Css exposing (..)')
+            for (let import_ of config.imports) {
+                console.log(import_)
+            }
+            console.log('\n')
 
             for (let node of result.root.nodes) {
                 const elmNodes = convertNode(node, config)
