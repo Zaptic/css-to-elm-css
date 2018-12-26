@@ -7,9 +7,25 @@ import program from 'commander'
 
 import * as Rules from './rules'
 
-interface ElmNode {
+interface ElmRule {
+    type: 'rule'
     name: string
     decls: Rules.ElmDecl[]
+}
+
+interface ElmComment {
+    type: 'comment'
+    content: string[]
+}
+
+type ElmNode = ElmRule | ElmComment
+
+function extractSource(node: postcss.Node) {
+    if (node.source.start && node.source.end) {
+        const lines = (<any>node.source.input).css.split('\n')
+        return lines.slice(node.source.start.line - 1, node.source.end.line)
+    }
+    return []
 }
 
 function convertDecl(node: postcss.Declaration, config: Rules.Config): Rules.ElmDecl {
@@ -26,41 +42,54 @@ function convertNode(node: postcss.Node, config: Rules.Config): ElmNode[] {
         const decls = []
         for (let child of node.nodes || []) {
             if (child.type === 'rule') {
-                const childNodes = convertNode(child, config).map(childElmNode => ({
-                    ...childElmNode,
-                    name: `${node.selector}-${childElmNode.name}`,
-                }))
+                const childNodes = convertNode(child, config).map(childElmNode => {
+                    if (childElmNode.type === 'rule') {
+                        return { ...childElmNode, name: `${node.selector}-${childElmNode.name}` }
+                    } else {
+                        return childElmNode
+                    }
+                })
                 children.push(...childNodes)
             } else if (child.type === 'decl') {
                 decls.push(convertDecl(child, config))
+            } else {
+                children.push({ type: 'comment', content: extractSource(child) })
             }
         }
-        return [{ name: node.selector, decls }, ...children]
+        return [{ type: 'rule', name: node.selector, decls }, ...children]
+    } else {
+        return [{ type: 'comment', content: extractSource(node) }]
     }
     return []
 }
 
 function elmNodeToString(node: ElmNode): string {
-    const rules = node.decls
-        .map((decl: Rules.ElmDecl) => {
-            return `${decl.name} ${decl.values.join(' ')}`
-        })
-        .join('\n        , ')
+    if (node.type === 'rule') {
+        const rules = node.decls
+            .map((decl: Rules.ElmDecl, index: number) => {
+                const sep = index ? ',' : '['
+                return `${sep} ${decl.name} ${decl.values.join(' ')}`
+            })
+            .join('\n        ')
 
-    // Remove greater-than & ampersand syntax from the concatenated name
-    const simplified = node.name.replace(/(&|>)/g, '')
+        // Remove greater-than & ampersand syntax from the concatenated name
+        const simplified = node.name.replace(/(&|>)/g, '')
 
-    // Slugify to remove anything else & then camelCase for Elm
-    const name = _.camelCase(slug(simplified))
+        // Slugify to remove anything else & then camelCase for Elm
+        const name = _.camelCase(slug(simplified))
 
-    const text = `
+        const text = `
 ${name} : Style
 ${name} =
     Css.batch
-        [ ${rules}
+        ${rules || '['}
         ]
 `
-    return text
+        return text
+    } else if (node.type === 'comment') {
+        return node.content.map(line => '-- ' + line).join('\n')
+    }
+    return ''
 }
 
 program
