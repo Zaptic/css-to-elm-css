@@ -5,6 +5,20 @@ An early-stage experimental project to provide a converter from SCSS to Elm CSS.
 
 It will most likely only ever be 90% useful as manual interventions will always be necessary.
 
+## Usage
+
+```
+$ cat ./config.js
+module.exports = {
+    replacements: {
+        '$zaptic-grey-5': 'Color.grey5',
+        '$zaptic-grey-7': 'Color.grey7',
+        '$zaptic-red': 'Color.red',
+    },
+    imports: ['import Zap.Style.Color as Color'],
+}
+$ ./node_modules/.bin/tsc && node css-to-elm.js ../elm-project/src/view.scss --config './config.js'
+```
 
 ## Example Input & Output
 
