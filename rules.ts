@@ -6,6 +6,7 @@ export interface Config {
 }
 
 export interface ElmDecl {
+    type: 'decl'
     name: string
     values: string[]
 }
@@ -25,7 +26,7 @@ const builtInReplacements: { [key: string]: string } = {
     '+': 'plus',
 }
 
-function translateValue(value: string, config: Config) {
+export function translateValue(value: string, config: Config) {
     const replacements = {
         ...builtInReplacements,
         ...config.replacements,
@@ -56,28 +57,28 @@ function translateValue(value: string, config: Config) {
 
 function display(node: postcss.Declaration, config: Config): ElmDecl {
     if (node.value === 'flex') {
-        return { name: 'displayFlex', values: [] }
+        return { type: 'decl', name: 'displayFlex', values: [] }
     }
-    return { name: 'display', values: [_.camelCase(node.value)] }
+    return { type: 'decl', name: 'display', values: [_.camelCase(node.value)] }
 }
 
-export function flex(node: postcss.Declaration, config: Config) {
+export function flex(node: postcss.Declaration, config: Config): ElmDecl {
     const args = node.value.split(' ')
 
     // Drop 'auto' entries from the end as Elm Css seems to consider them redundant
     const values = _.dropRightWhile(args, arg => arg === 'auto').map(value => translateValue(value, config))
-    return { name: suffix(_.camelCase(node.prop), values.length), values }
+    return { type: 'decl', name: suffix(_.camelCase(node.prop), values.length), values }
 }
 
-export function standard(node: postcss.Declaration, config: Config) {
+export function standard(node: postcss.Declaration, config: Config): ElmDecl {
     const match = node.value.match(/^calc\((.*)\)/)
     if (match && match.length) {
         const values = match[1].split(' ').map(value => translateValue(value, config))
-        return { name: node.prop, values: ['<|', 'calc', ...values] }
+        return { type: 'decl', name: node.prop, values: ['<|', 'calc', ...values] }
     } else {
         const args = node.value.split(' ')
         const values = args.map(value => translateValue(value, config))
-        return { name: suffix(_.camelCase(node.prop), values.length), values }
+        return { type: 'decl', name: suffix(_.camelCase(node.prop), values.length), values }
     }
 }
 

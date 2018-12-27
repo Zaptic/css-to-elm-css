@@ -18,7 +18,7 @@ interface ElmComment {
     content: string[]
 }
 
-type ElmNode = ElmRule | ElmComment
+type ElmNode = ElmRule | ElmComment | Rules.ElmDecl
 
 function extractSource(node: postcss.Node) {
     if (node.source.start && node.source.end) {
@@ -33,7 +33,7 @@ function convertDecl(node: postcss.Declaration, config: Rules.Config): Rules.Elm
         const handler = Rules.lookup[node.prop] || Rules.standard
         return handler(node, config)
     }
-    return { name: '', values: [] }
+    return { type: 'decl', name: '', values: [] }
 }
 
 function convertNode(node: postcss.Node, config: Rules.Config): ElmNode[] {
@@ -57,6 +57,15 @@ function convertNode(node: postcss.Node, config: Rules.Config): ElmNode[] {
             }
         }
         return [{ type: 'rule', name: node.selector, decls }, ...children]
+    } else if (node.type === 'decl') {
+        // Assume it is a variable declaration so strip the leading '$' and camelCase the rest
+        return [
+            {
+                type: 'decl',
+                name: _.camelCase(node.prop.replace('$', '')),
+                values: [Rules.translateValue(node.value, config)],
+            },
+        ]
     } else {
         return [{ type: 'comment', content: extractSource(node) }]
     }
@@ -86,6 +95,8 @@ ${name} =
         ]
 `
         return text
+    } else if (node.type === 'decl') {
+        return `${node.name} = ${node.values.join(' ')}`
     } else if (node.type === 'comment') {
         return node.content.map(line => '-- ' + line).join('\n')
     }
