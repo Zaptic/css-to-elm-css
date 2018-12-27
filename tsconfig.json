@@ -3,8 +3,9 @@
         "target": "es5",
         "module": "commonjs",
         "strict": true,
-        "esModuleInterop": true
+        "esModuleInterop": true,
+        "outDir": "built"
     },
-    "files": ["css-to-elm.ts", "types.d.ts"],
+    "files": ["src/css-to-elm.ts", "src/types.d.ts"],
     "exclude": ["node_modules"]
 }

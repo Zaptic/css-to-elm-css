@@ -1,9 +1,7 @@
 import postcss from 'postcss'
 import * as _ from 'lodash'
 
-export interface Config {
-    replacements: { [key: string]: string }
-}
+import { Config } from './config'
 
 export interface ElmDecl {
     type: 'decl'

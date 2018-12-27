@@ -1,11 +1,14 @@
+import * as fs from 'fs'
+import * as path from 'path'
+
+import * as _ from 'lodash'
 import postcss from 'postcss'
 import scss from 'postcss-scss'
-import * as fs from 'fs'
 import slug from 'slug'
-import * as _ from 'lodash'
 import program from 'commander'
 
 import * as Rules from './rules'
+import { Config, defaultConfig } from './config'
 
 interface ElmRule {
     type: 'rule'
@@ -28,7 +31,7 @@ function extractSource(node: postcss.Node) {
     return []
 }
 
-function convertDecl(node: postcss.Declaration, config: Rules.Config): Rules.ElmDecl {
+function convertDecl(node: postcss.Declaration, config: Config): Rules.ElmDecl {
     if (node.type === 'decl') {
         const handler = Rules.lookup[node.prop] || Rules.standard
         return handler(node, config)
@@ -36,7 +39,7 @@ function convertDecl(node: postcss.Declaration, config: Rules.Config): Rules.Elm
     return { type: 'decl', name: '', values: [] }
 }
 
-function convertNode(node: postcss.Node, config: Rules.Config): ElmNode[] {
+function convertNode(node: postcss.Node, config: Config): ElmNode[] {
     if (node.type === 'rule') {
         const children: ElmNode[] = []
         const decls = []
@@ -110,33 +113,10 @@ program
 
 const cssFilePath = program.args[0]
 const configFilePath = program.config
-const defaultConfig = {
-    /* Replacements allow direct substitutions on values. Helpful for handling SCSS variables and replacing them with
-       your own Elm variables, eg:
-
-           replacements: {
-               '$zaptic-grey-5': 'Color.grey5',
-               '$zaptic-grey-7': 'Color.grey7',
-               '$zaptic-red': 'Color.red',
-           },
-
-    */
-    replacements: {},
-
-    /* Imports allow you to specify addition imports that you'd like included in the output. These might be used to
-       expose standard colors that you have defined in your SCSS:
-
-           imports: [
-               'import Zap.Style.Color as Color'
-           ],
-    */
-    imports: [],
-}
-
 let config = defaultConfig
 
 if (configFilePath !== undefined) {
-    config = require(configFilePath)
+    config = require(path.resolve(configFilePath))
 }
 
 fs.readFile(cssFilePath, (err, css) => {
@@ -145,6 +125,7 @@ fs.readFile(cssFilePath, (err, css) => {
         .then((result: any) => {
             // Write out an import statement for the top
             console.log('import Css exposing (..)')
+            console.log('import Css.Global')
             for (let import_ of config.imports) {
                 console.log(import_)
             }
