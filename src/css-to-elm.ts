@@ -92,35 +92,49 @@ function elmRuleContentsToString(node: ElmRule): string {
                 const sep = index ? ',' : '['
                 return `${sep} ${child.name} ${child.values.join(' ')}`
             } else if (child.type === 'rule') {
-                const start = []
-                const end = []
                 // TODO: This fails with comma separated selectors
-                const name = child.name.replace('\n', '').replace(/ +/g, ' ')
-                for (const entry of name.split(' ')) {
-                    if (start.length) {
-                        start.push('[')
-                        end.push(']')
+                const names = child.name
+                    .replace('\n', '')
+                    .replace(/ +/g, ' ')
+                    .split(',')
+                    .map(str => str.trim())
+                const all = []
+                for (const name of names) {
+                    const start = []
+                    for (const entry of name.split(' ')) {
+                        const globalMatch = entry.match(globalRegex)
+                        if (entry[0] === '.') {
+                            start.push(`Global.class "${_.camelCase(entry)}"`)
+                        } else if (symbolLookup[entry] !== undefined) {
+                            start.push(symbolLookup[entry])
+                        } else if (globalMatch) {
+                            start.push(`Global.class "${globalMatch[1]}"`)
+                        } else if (/^[a-z]+$/.test(entry)) {
+                            start.push(`Global.typeSelector "${entry}"`)
+                        } else {
+                            start.push(`Global.selector "${entry}"`)
+                        }
                     }
+                    all.push(start)
+                }
 
-                    const globalMatch = entry.match(globalRegex)
-                    if (entry[0] === '.') {
-                        start.push(`Global.class "${_.camelCase(entry)}"`)
-                    } else if (symbolLookup[entry] !== undefined) {
-                        start.push(symbolLookup[entry])
-                    } else if (globalMatch) {
-                        start.push(`Global.class "${globalMatch[1]}"`)
-                    } else if (/^[a-z]+$/.test(entry)) {
-                        start.push(`Global.typeSelector "${entry}"`)
+                let selector = []
+                if (all.length > 1) {
+                    selector = ['each', '[', all.join(', '), ']']
+                } else {
+                    if (all[0].length > 1) {
+                        selector = ['merge [', all[0].map(entry => `(${entry})`).join(', '), ']']
                     } else {
-                        start.push(`UnknownEntry "${entry}"`)
+                        selector = [...all[0]]
                     }
                 }
+
                 const contents = elmRuleContentsToString(child)
                 const sep = index ? ',' : '['
-                return [sep, ...start, contents, ...end].join(' ')
-            } else {
+                return [sep, ...selector, contents].join(' ')
+            } else if (child.type === 'comment') {
                 const sep = index ? ',' : '['
-                return `${sep} UnknownNode "${child.type}"`
+                return `${sep} unknownNode "${child.content}"`
             }
         })
         .join('\n        ')
@@ -175,16 +189,31 @@ fs.readFile(cssFilePath, (err, css) => {
         .then((result: any) => {
             // Write out an import statement for the top
             console.log('import Css exposing (..)')
-            console.log('import Css.Global')
+            console.log('import Css.Global as Global')
             for (let import_ of config.imports) {
                 console.log(import_)
             }
             console.log('\n')
 
+            console.log(`
+
+unknownNode string = Css.batch []
+
+merge ops styles =
+    let
+        reduce entry prev =
+            entry [ prev ]
+    in
+    List.foldr reduce (Css.batch styles) ops
+
+
+`)
+
             for (let node of result.root.nodes) {
                 const elmNodes = convertNode(node, config)
 
                 // Write out each node as Elm
+                // elmNodes.map(elmNode => elmNodeToString(elmNode))
                 elmNodes.map(elmNode => console.log(elmNodeToString(elmNode)))
             }
         })
