@@ -1,6 +1,7 @@
 export interface Config {
     replacements: { [key: string]: string }
     imports: string[]
+    unnest: boolean
 }
 
 export const defaultConfig: Config = {
@@ -24,4 +25,6 @@ export const defaultConfig: Config = {
            ],
     */
     imports: [],
+
+    unnest: false,
 }

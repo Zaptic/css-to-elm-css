@@ -13,7 +13,7 @@ import { Config, defaultConfig } from './config'
 interface ElmRule {
     type: 'rule'
     name: string
-    decls: Rules.ElmDecl[]
+    children: ElmNode[]
 }
 
 interface ElmComment {
@@ -42,11 +42,10 @@ function convertDecl(node: postcss.Declaration, config: Config): Rules.ElmDecl {
 function convertNode(node: postcss.Node, config: Config): ElmNode[] {
     if (node.type === 'rule') {
         const children: ElmNode[] = []
-        const decls = []
         for (let child of node.nodes || []) {
             if (child.type === 'rule') {
                 const childNodes = convertNode(child, config).map(childElmNode => {
-                    if (childElmNode.type === 'rule') {
+                    if (childElmNode.type === 'rule' && config.unnest) {
                         return { ...childElmNode, name: `${node.selector}-${childElmNode.name}` }
                     } else {
                         return childElmNode
@@ -54,12 +53,17 @@ function convertNode(node: postcss.Node, config: Config): ElmNode[] {
                 })
                 children.push(...childNodes)
             } else if (child.type === 'decl') {
-                decls.push(convertDecl(child, config))
+                children.push(convertDecl(child, config))
             } else {
                 children.push({ type: 'comment', content: extractSource(child) })
             }
         }
-        return [{ type: 'rule', name: node.selector, decls }, ...children]
+
+        if (config.unnest) {
+            return [{ type: 'rule', name: node.selector, children: [] }, ...children]
+        } else {
+            return [{ type: 'rule', name: node.selector, children }]
+        }
     } else if (node.type === 'decl') {
         // Assume it is a variable declaration so strip the leading '$' and camelCase the rest
         return [
@@ -75,15 +79,61 @@ function convertNode(node: postcss.Node, config: Config): ElmNode[] {
     return []
 }
 
+const symbolLookup: { [key: string]: string } = {
+    '>': 'Global.children',
+}
+
+const globalRegex = /^:global\((.*)\)/
+
+function elmRuleContentsToString(node: ElmRule): string {
+    const rules = node.children
+        .map((child: ElmNode, index: number) => {
+            if (child.type === 'decl') {
+                const sep = index ? ',' : '['
+                return `${sep} ${child.name} ${child.values.join(' ')}`
+            } else if (child.type === 'rule') {
+                const start = []
+                const end = []
+                // TODO: This fails with comma separated selectors
+                const name = child.name.replace('\n', '').replace(/ +/g, ' ')
+                for (const entry of name.split(' ')) {
+                    if (start.length) {
+                        start.push('[')
+                        end.push(']')
+                    }
+
+                    const globalMatch = entry.match(globalRegex)
+                    if (entry[0] === '.') {
+                        start.push(`Global.class "${_.camelCase(entry)}"`)
+                    } else if (symbolLookup[entry] !== undefined) {
+                        start.push(symbolLookup[entry])
+                    } else if (globalMatch) {
+                        start.push(`Global.class "${globalMatch[1]}"`)
+                    } else if (/^[a-z]+$/.test(entry)) {
+                        start.push(`Global.typeSelector "${entry}"`)
+                    } else {
+                        start.push(`UnknownEntry "${entry}"`)
+                    }
+                }
+                const contents = elmRuleContentsToString(child)
+                const sep = index ? ',' : '['
+                return [sep, ...start, contents, ...end].join(' ')
+            } else {
+                const sep = index ? ',' : '['
+                return `${sep} UnknownNode "${child.type}"`
+            }
+        })
+        .join('\n        ')
+
+    const text = `
+        ${rules || '['}
+        ]
+`
+    return text
+}
+
 function elmNodeToString(node: ElmNode): string {
     if (node.type === 'rule') {
-        const rules = node.decls
-            .map((decl: Rules.ElmDecl, index: number) => {
-                const sep = index ? ',' : '['
-                return `${sep} ${decl.name} ${decl.values.join(' ')}`
-            })
-            .join('\n        ')
-
         // Remove greater-than & ampersand syntax from the concatenated name
         const simplified = node.name.replace(/(&|>)/g, '')
 
@@ -93,11 +143,8 @@ function elmNodeToString(node: ElmNode): string {
         const text = `
 ${name} : Style
 ${name} =
-    Css.batch
-        ${rules || '['}
-        ]
-`
-        return text
+    Css.batch`
+        return text + elmRuleContentsToString(node)
     } else if (node.type === 'decl') {
         return `${node.name} = ${node.values.join(' ')}`
     } else if (node.type === 'comment') {
@@ -116,7 +163,10 @@ const configFilePath = program.config
 let config = defaultConfig
 
 if (configFilePath !== undefined) {
-    config = require(path.resolve(configFilePath))
+    config = {
+        ...config,
+        ...require(path.resolve(configFilePath)),
+    }
 }
 
 fs.readFile(cssFilePath, (err, css) => {
