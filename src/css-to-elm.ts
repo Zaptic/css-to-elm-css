@@ -120,7 +120,7 @@ function elmRuleContentsToString(node: ElmRule): string {
 
                 let selector = []
                 if (all.length > 1) {
-                    selector = ['each', '[', all.join(', '), ']']
+                    selector = ['Global.each', '[', all.join(', '), ']']
                 } else {
                     if (all[0].length > 1) {
                         selector = ['merge [', all[0].map(entry => `(${entry})`).join(', '), ']']
