@@ -106,20 +106,24 @@ const globalRegex = /^:global\((.*)\)/
 
  */
 function convertSelector(selector: string) {
-    return selector.split(' ').map(entry => {
-        const globalMatch = entry.match(globalRegex)
-        if (entry[0] === '.') {
-            return `Global.class "${_.camelCase(entry)}"`
-        } else if (symbolLookup[entry] !== undefined) {
-            return symbolLookup[entry]
-        } else if (globalMatch) {
-            return `Global.class "${globalMatch[1]}"`
-        } else if (/^[a-z]+$/.test(entry)) {
-            return `Global.typeSelector "${entry}"`
-        } else {
-            return `Global.selector "${entry}"`
-        }
-    })
+    const lead = selector[0] === '&' ? [] : ['Global.descendants <| List.singleton <|']
+    return [
+        ...lead,
+        ...selector.split(' ').map(entry => {
+            const globalMatch = entry.match(globalRegex)
+            if (entry[0] === '.') {
+                return `Global.class "${_.camelCase(entry)}"`
+            } else if (symbolLookup[entry] !== undefined) {
+                return symbolLookup[entry]
+            } else if (globalMatch) {
+                return `Global.class "${globalMatch[1].slice(1)}"`
+            } else if (/^[a-z]+$/.test(entry)) {
+                return `Global.typeSelector "${entry}"`
+            } else {
+                return `Global.selector "${entry}"`
+            }
+        }),
+    ]
 }
 
 function elmRuleContentsToString(node: ElmRule): string {
@@ -132,22 +136,13 @@ function elmRuleContentsToString(node: ElmRule): string {
                 const names = extractSelectors(child.name)
                 const all = names.map(convertSelector)
 
-                let selector = []
-                // If there is more than one selector (ie. we had a comma in the initial rule) then we use the 'each'
-                // helper to make sure that they are all accounted for
-                if (all.length > 1) {
-                    selector = ['Global.each', '[', all.join(', '), ']']
-                } else {
-                    if (all[0].length > 1) {
-                        selector = ['merge [', all[0].map(entry => `(${entry})`).join(', '), ']']
-                    } else {
-                        selector = [...all[0]]
-                    }
-                }
-
                 const contents = elmRuleContentsToString(child)
-                const sep = index ? ',' : '['
-                return [sep, ...selector, contents].join(' ')
+                return [
+                    ...all.map((selector, selectorIndex) => {
+                        const sep = index + selectorIndex ? ',' : '['
+                        return [sep, ...selector, contents].join(' ')
+                    }),
+                ]
             } else if (child.type === 'comment') {
                 const sep = index ? ',' : '['
                 return `${sep} unknownNode "${child.content}"`
