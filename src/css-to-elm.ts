@@ -79,11 +79,48 @@ function convertNode(node: postcss.Node, config: Config): ElmNode[] {
     return []
 }
 
+/* We want to turn something like 
+
+      > button,
+      a
+
+   into ['> button', 'a']. In particular, it breaks on 'commas' so that we can each selector separately.
+*/
+function extractSelectors(name: string) {
+    return name
+        .replace('\n', '')
+        .replace(/ +/g, ' ')
+        .split(',')
+        .map(str => str.trim())
+}
+
 const symbolLookup: { [key: string]: string } = {
     '>': 'Global.children',
 }
 
 const globalRegex = /^:global\((.*)\)/
+
+/* Converts a selector like '> button' into:
+
+   [ 'Global.children', 'Global.typeSelector "button"']
+
+ */
+function convertSelector(selector: string) {
+    return selector.split(' ').map(entry => {
+        const globalMatch = entry.match(globalRegex)
+        if (entry[0] === '.') {
+            return `Global.class "${_.camelCase(entry)}"`
+        } else if (symbolLookup[entry] !== undefined) {
+            return symbolLookup[entry]
+        } else if (globalMatch) {
+            return `Global.class "${globalMatch[1]}"`
+        } else if (/^[a-z]+$/.test(entry)) {
+            return `Global.typeSelector "${entry}"`
+        } else {
+            return `Global.selector "${entry}"`
+        }
+    })
+}
 
 function elmRuleContentsToString(node: ElmRule): string {
     const rules = node.children
@@ -92,33 +129,12 @@ function elmRuleContentsToString(node: ElmRule): string {
                 const sep = index ? ',' : '['
                 return `${sep} ${child.name} ${child.values.join(' ')}`
             } else if (child.type === 'rule') {
-                // TODO: This fails with comma separated selectors
-                const names = child.name
-                    .replace('\n', '')
-                    .replace(/ +/g, ' ')
-                    .split(',')
-                    .map(str => str.trim())
-                const all = []
-                for (const name of names) {
-                    const start = []
-                    for (const entry of name.split(' ')) {
-                        const globalMatch = entry.match(globalRegex)
-                        if (entry[0] === '.') {
-                            start.push(`Global.class "${_.camelCase(entry)}"`)
-                        } else if (symbolLookup[entry] !== undefined) {
-                            start.push(symbolLookup[entry])
-                        } else if (globalMatch) {
-                            start.push(`Global.class "${globalMatch[1]}"`)
-                        } else if (/^[a-z]+$/.test(entry)) {
-                            start.push(`Global.typeSelector "${entry}"`)
-                        } else {
-                            start.push(`Global.selector "${entry}"`)
-                        }
-                    }
-                    all.push(start)
-                }
+                const names = extractSelectors(child.name)
+                const all = names.map(convertSelector)
 
                 let selector = []
+                // If there is more than one selector (ie. we had a comma in the initial rule) then we use the 'each'
+                // helper to make sure that they are all accounted for
                 if (all.length > 1) {
                     selector = ['Global.each', '[', all.join(', '), ']']
                 } else {
