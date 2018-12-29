@@ -178,36 +178,18 @@ ${name} =
     return ''
 }
 
-program
-    .version('0.1.0')
-    .option('-c, --config [path]', 'Path to configuration file')
-    .parse(process.argv)
-
-const cssFilePath = program.args[0]
-const configFilePath = program.config
-let config = defaultConfig
-
-if (configFilePath !== undefined) {
-    config = {
-        ...config,
-        ...require(path.resolve(configFilePath)),
-    }
-}
-
-function convertCss(css: string) {
-    return postcss([])
-        .process(css, { syntax: scss })
-        .then((result: any) => {
-            // Write out an import statement for the top
-            const header = `
+function header(config: Config) {
+    return `
 module Style exposing (..)
 
 import Css exposing (..)')
 import Css.Global as Global')
 ${config.imports.join('\n')}
 `
+}
 
-            const helpers = `
+function helpers() {
+    return `
 
 unknownNode string = Css.batch []
 
@@ -218,18 +200,41 @@ merge ops styles =
     in
     List.foldr reduce (Css.batch styles) ops
 `
+}
 
+function convertCss(css: string, config: Config) {
+    return postcss([])
+        .process(css, { syntax: scss })
+        .then((result: any) => {
             const content = result.root.nodes.map((node: postcss.Node) => {
                 return convertNode(node, config).map(elmNodeToString)
             })
 
-            return [header, helpers, ...content].join('\n')
+            return content.join('\n')
         })
 }
 
 async function main() {
+    program
+        .version('0.1.0')
+        .option('-c, --config [path]', 'Path to configuration file')
+        .parse(process.argv)
+
+    const cssFilePath = program.args[0]
+    const configFilePath = program.config
+    let config = defaultConfig
+
+    if (configFilePath !== undefined) {
+        config = {
+            ...config,
+            ...require(path.resolve(configFilePath)),
+        }
+    }
+
     fs.readFile(cssFilePath, async (err, css) => {
-        const output = await convertCss(css.toString())
+        const output = await convertCss(css.toString(), config)
+        console.log(header(config))
+        console.log(helpers())
         console.log(output)
     })
 }
