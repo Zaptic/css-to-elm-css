@@ -106,7 +106,13 @@ const globalRegex = /^:global\((.*)\)/
 
  */
 function convertSelector(selector: string) {
+    // Try to handle inserting 'decescendants' as needed by checking that there is no leading '&'
+    // There are probably lots of ways of improving this
     const lead = selector[0] === '&' ? [] : ['Global.descendants <| List.singleton <|']
+
+    // Test for entry string main entirely of lower case letters or h1 to h6
+    const tagRegex = /^([a-z]+|h[1-6])$/
+
     return [
         ...lead,
         ...selector.split(' ').map(entry => {
@@ -117,7 +123,7 @@ function convertSelector(selector: string) {
                 return symbolLookup[entry]
             } else if (globalMatch) {
                 return `Global.class "${globalMatch[1].slice(1)}"`
-            } else if (/^[a-z]+$/.test(entry)) {
+            } else if (tagRegex.test(entry)) {
                 return `Global.typeSelector "${entry}"`
             } else {
                 return `Global.selector "${entry}"`
