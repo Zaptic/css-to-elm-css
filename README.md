@@ -58,7 +58,7 @@ Input SCSS:
 }
 ```
 
-Output Elm:
+Output Elm (after applying elm-format):
 
 ```
 trainingWorkflows : Style
@@ -69,24 +69,20 @@ trainingWorkflows =
         , width workflowColumnWidth
         , backgroundColor (hex "f8fbff")
         , borderRight3 (px 1) solid zapticGrey6
-        ]
-
-
-trainingWorkflowsH2 : Style
-trainingWorkflowsH2 =
-    Css.batch
-        [ fontSize (px 16)
-        , padding4 (px 25) (px 20) (px 20) (px 20)
-        , margin 0
-        , borderBottom3 (px 1) solid zapticGrey5
-        ]
-
-
-trainingWorkflowsUl : Style
-trainingWorkflowsUl =
-    Css.batch
-        [ padding 0
-        , margin 0
-        , width (pct 100)
+        , Global.descendants <|
+            List.singleton <|
+                Global.typeSelector "h2"
+                    [ fontSize (px 16)
+                    , padding4 (px 25) (px 20) (px 20) (px 20)
+                    , margin zero
+                    , borderBottom3 (px 1) solid zapticGrey5
+                    ]
+        , Global.descendants <|
+            List.singleton <|
+                merge [ Global.children, Global.typeSelector "ul" ]
+                    [ padding zero
+                    , margin zero
+                    , width (pct 100)
+                    ]
         ]
 ```
