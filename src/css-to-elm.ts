@@ -108,7 +108,7 @@ const globalRegex = /^:global\((.*)\)/
 function convertSelector(selector: string) {
     // Try to handle inserting 'decescendants' as needed by checking that there is no leading '&'
     // There are probably lots of ways of improving this
-    const lead = selector[0] === '&' ? [] : ['Global.descendants <| List.singleton <|']
+    const lead = selector[0] === '&' ? [] : ['Global.descendants <| List.singleton <| ']
 
     // Test for entry string main entirely of lower case letters or h1 to h6
     const tagRegex = /^([a-z]+|h[1-6])$/
@@ -146,7 +146,9 @@ function elmRuleContentsToString(node: ElmRule): string {
                 return [
                     ...all.map((selector, selectorIndex) => {
                         const sep = index + selectorIndex ? ', ' : '['
-                        return [sep, selector.join(' '), contents].join('')
+                        const sel =
+                            selector.length > 2 ? ['merge [', selector.slice(1).join(', '), ']'] : selector.slice(1)
+                        return [sep, selector[0], sel.join(' '), contents].join('')
                     }),
                 ].join(' ')
             } else if (child.type === 'comment') {

@@ -41,7 +41,7 @@ trainingWorkflows =
         , borderBottom3 (px 1) solid zapticGrey5
         ]
 
-        , Global.descendants <| List.singleton <| Global.children Global.typeSelector \\"ul\\"
+        , Global.descendants <| List.singleton <| merge [ Global.children, Global.typeSelector \\"ul\\" ]
         [ padding zero
         , margin zero
         , width (pct 100)
