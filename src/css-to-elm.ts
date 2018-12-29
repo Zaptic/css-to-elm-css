@@ -197,8 +197,13 @@ ${config.imports.join('\n')}
 function helpers() {
     return `
 
-unknownNode string = Css.batch []
+{-| Helper function that allows unknown css content to be displayed & to still compile
+-}
+unknownNode string =
+    Css.batch []
 
+{-| Helper function to compose multiple selectors to avoid having to deal with numerous single entry lists
+-}
 merge ops styles =
     let
         reduce entry prev =
