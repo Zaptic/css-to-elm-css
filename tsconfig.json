@@ -4,7 +4,8 @@
         "module": "commonjs",
         "strict": true,
         "esModuleInterop": true,
-        "outDir": "built"
+        "outDir": "built",
+        "lib": ["ES2018"]
     },
     "files": ["src/css-to-elm.ts", "src/types.d.ts"],
     "exclude": ["node_modules"]

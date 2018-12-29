@@ -194,19 +194,20 @@ if (configFilePath !== undefined) {
     }
 }
 
-fs.readFile(cssFilePath, (err, css) => {
-    postcss([])
+function convertCss(css: string) {
+    return postcss([])
         .process(css, { syntax: scss })
         .then((result: any) => {
             // Write out an import statement for the top
-            console.log('import Css exposing (..)')
-            console.log('import Css.Global as Global')
-            for (let import_ of config.imports) {
-                console.log(import_)
-            }
-            console.log('\n')
+            const header = `
+module Style exposing (..)
 
-            console.log(`
+import Css exposing (..)')
+import Css.Global as Global')
+${config.imports.join('\n')}
+`
+
+            const helpers = `
 
 unknownNode string = Css.batch []
 
@@ -216,16 +217,21 @@ merge ops styles =
             entry [ prev ]
     in
     List.foldr reduce (Css.batch styles) ops
+`
 
+            const content = result.root.nodes.map((node: postcss.Node) => {
+                return convertNode(node, config).map(elmNodeToString)
+            })
 
-`)
-
-            for (let node of result.root.nodes) {
-                const elmNodes = convertNode(node, config)
-
-                // Write out each node as Elm
-                // elmNodes.map(elmNode => elmNodeToString(elmNode))
-                elmNodes.map(elmNode => console.log(elmNodeToString(elmNode)))
-            }
+            return [header, helpers, ...content].join('\n')
         })
-})
+}
+
+async function main() {
+    fs.readFile(cssFilePath, async (err, css) => {
+        const output = await convertCss(css.toString())
+        console.log(output)
+    })
+}
+
+main()
