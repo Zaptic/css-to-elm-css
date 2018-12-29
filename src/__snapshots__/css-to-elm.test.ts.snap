@@ -1,0 +1,25 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`basic class selector 1`] = `
+"
+myButton : Style
+myButton =
+    Css.batch
+        [ color white
+        ]
+"
+`;
+
+exports[`nested class selectors 1`] = `
+"
+myButton : Style
+myButton =
+    Css.batch
+        [ color white
+        , Global.descendants <| List.singleton <| Global.class \\"myButtonDetail\\" 
+        [ color black
+        ]
+
+        ]
+"
+`;

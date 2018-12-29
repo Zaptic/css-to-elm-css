@@ -202,7 +202,7 @@ merge ops styles =
 `
 }
 
-function convertCss(css: string, config: Config) {
+export function convertCss(css: string, config: Config) {
     return postcss([])
         .process(css, { syntax: scss })
         .then((result: any) => {
@@ -239,4 +239,6 @@ async function main() {
     })
 }
 
-main()
+if (process.env.NODE_ENV !== 'test') {
+    main()
+}

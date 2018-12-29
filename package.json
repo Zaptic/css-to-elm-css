@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test": "NODE_ENV=test jest"
+  },
   "dependencies": {
     "@types/lodash": "4.14.119",
     "@types/node": "10.12.18",
@@ -10,5 +13,10 @@
     "prettier": "1.15.3",
     "slug": "0.9.3",
     "typescript": "3.2.2"
+  },
+  "devDependencies": {
+    "@types/jest": "23.3.10",
+    "jest": "23.6.0",
+    "ts-jest": "23.10.5"
   }
 }
