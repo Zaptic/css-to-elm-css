@@ -16,7 +16,7 @@ myButton : Style
 myButton =
     Css.batch
         [ color white
-        , Global.descendants <| List.singleton <| Global.class \\"myButtonDetail\\" 
+        , Global.descendants <| List.singleton <| Global.class \\"myButtonDetail\\"
         [ color black
         ]
 

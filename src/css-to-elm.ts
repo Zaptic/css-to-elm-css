@@ -145,12 +145,12 @@ function elmRuleContentsToString(node: ElmRule): string {
                 const contents = elmRuleContentsToString(child)
                 return [
                     ...all.map((selector, selectorIndex) => {
-                        const sep = index + selectorIndex ? ',' : '['
-                        return [sep, ...selector, contents].join(' ')
+                        const sep = index + selectorIndex ? ', ' : '['
+                        return [sep, selector.join(' '), contents].join('')
                     }),
-                ]
+                ].join(' ')
             } else if (child.type === 'comment') {
-                const sep = index ? ',' : '['
+                const sep = index ? ', ' : '['
                 return `${sep} unknownNode "${child.content}"`
             }
         })
