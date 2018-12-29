@@ -17,8 +17,16 @@ module.exports = {
     },
     imports: ['import Zap.Style.Color as Color'],
 }
-$ ./node_modules/.bin/tsc && node css-to-elm.js ../elm-project/src/view.scss --config './config.js'
+$ ./node_modules/.bin/tsc && node built/css-to-elm.js ../elm-project/src/view.scss --config './config.js'
 ```
+
+The output is printed to standard out.
+
+There are some warnings that are printed from postcss too.
+
+## Tests
+
+You can run `yarn test` to run the tests.
 
 ## Example Input & Output
 
